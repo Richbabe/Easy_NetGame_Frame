@@ -72,11 +72,11 @@ class NetManager:
         # 缓冲区不够，清除，若依旧不够，只能返回
         # 缓冲区长度只有1024，单条协议超过缓冲区长度时会发生错误，根据需要调整长度
         if read_buff.remain() <= 0:
-            self.on_receive_data(clientfd)
+            self.on_receive_data(state)
             read_buff.move_bytes()
         if read_buff.remain() <= 0:
             print("Receive fail, maybe msg length > buff capacity!")
-            self.close(state)
+            self.close(clientfd)
             return
 
         try:
@@ -99,7 +99,7 @@ class NetManager:
         read_buff.writeIdx += count
 
         # 处理二进制消息
-        self.on_receive_data(clientfd)
+        self.on_receive_data(state)
 
         # 移动缓冲区
         read_buff.check_move()
@@ -113,8 +113,7 @@ class NetManager:
         del self.clients[clientfd]
 
     # 消息处理
-    def on_receive_data(self, clientfd):
-        state = self.clients[clientfd]
+    def on_receive_data(self, state):
         read_buff = state.read_buff
 
         # 消息长度
@@ -135,7 +134,7 @@ class NetManager:
 
         if proto_name == "":
             print("OnReceiveData MsgBase.DecodeName fail！")
-            self.close(clientfd)
+            self.close(state.client_socket)
 
         read_buff.readIdx += name_count
 
@@ -145,8 +144,7 @@ class NetManager:
         read_buff.readIdx += body_count
         read_buff.check_move()
 
-        # 分发消息
-
+        # 分发消息00
         funName = "MsgHandler." + proto_name
         eval(funName)(managers, state, msg_base)  # 调用对应的消息处理函数
 
